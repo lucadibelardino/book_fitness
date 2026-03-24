@@ -2,8 +2,9 @@ name: Auto Book FreeFitness
 
 on:
   schedule:
-    # Runs at 23:00 UTC (00:00 Italy time)
-    - cron: '0 23 * * *'
+    # Runs at 22:50 UTC (23:50 Italy time) to account for GitHub Actions queue delays.
+    # The Python script will then wait until exactly 00:00:01 before interacting.
+    - cron: '50 22 * * *'
   workflow_dispatch: # Allows manual trigger
 
 jobs:
@@ -29,6 +30,4 @@ jobs:
           CUSTORINO_USERNAME: ${{ secrets.CUSTORINO_USERNAME }}
           CUSTORINO_PASSWORD: ${{ secrets.CUSTORINO_PASSWORD }}
         run: |
-          echo "Attendo 5 secondi prima di effettuare la prenotazione..."
-          sleep 5
           python book_cus.py

@@ -18,14 +18,28 @@ def main():
         print("[!] Credentials not found in environment variables. Please set CUSTORINO_USERNAME and CUSTORINO_PASSWORD.")
         return
 
-    # Use Rome timezone to ensure correct date calculation when running on GitHub Actions (UTC)
+    # Use Rome timezone to ensure correct date calculation
     rome_tz = pytz.timezone('Europe/Rome')
-    tomorrow = datetime.now(rome_tz) + timedelta(days=1)
-    tomorrow_str = tomorrow.strftime("%d/%m/%Y")
-    print(f"[*] Target date: {tomorrow_str} (time: 18:30 - 20:00)")
+    current_time = datetime.now(rome_tz)
     
     # Check if we're running in GitHub Actions to determine headless mode
     is_ci = os.environ.get("CI") == "true"
+    
+    # If in CI, we want to ensure we run strictly after midnight (00:00:01) to book exactly when slots open
+    if is_ci:
+        # If we started before midnight (e.g. 23:50), wait until 00:00:01 of the next day
+        if current_time.hour == 23:
+            midnight = current_time.replace(hour=0, minute=0, second=1, microsecond=0) + timedelta(days=1)
+            wait_seconds = (midnight - current_time).total_seconds()
+            if wait_seconds > 0:
+                print(f"[*] CI Mode: Started early. Waiting {wait_seconds:.2f} seconds until {midnight.strftime('%H:%M:%S')}...")
+                time.sleep(wait_seconds)
+    
+    # Recalculate target date after potential sleep
+    now = datetime.now(rome_tz)
+    tomorrow = now + timedelta(days=1)
+    tomorrow_str = tomorrow.strftime("%d/%m/%Y")
+    print(f"[*] Target date: {tomorrow_str} (time: 18:30 - 20:00)")
     
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=is_ci, slow_mo=500 if not is_ci else 0)
